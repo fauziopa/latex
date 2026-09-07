@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LaTeX to KaTeX Converter</title>
+  
+  <!-- KaTeX CSS CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+  
+  <!-- Google Fonts: Inter untuk tipografi bersih standar -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* Reset & Variabel Tema Putih Bersih Minimalis */
+    :root {
+      --bg-main: #f8fafc;
+      --bg-card: #ffffff;
+      --border-color: #e2e8f0;
+      --border-focus: #94a3b8;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent-color: #2563eb;
+      --accent-hover: #1d4ed8;
+      --btn-secondary-bg: #f1f5f9;
+      --btn-secondary-hover: #e2e8f0;
+      --danger-color: #ef4444;
+      --danger-bg: #fef2f2;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Container Utama */
+    .app-container {
+      max-width: 1000px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      flex: 1;
+    }
+
+    /* Header Navigasi */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      background: var(--btn-secondary-bg);
+      color: var(--text-muted);
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      text-transform: uppercase;
+    }
+
+    .header-links {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* Area Editor & Preview Grid */
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Kartu UI */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover {
+      border-color: var(--border-focus);
+    }
+
+    .card-header {
+      padding: 14px 18px;
+      background: #fafafa;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Toolbar Rumus Cepat */
+    .quick-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 10px 18px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .btn-quick {
+      background: var(--btn-secondary-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 5px 9px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.15s ease;
+    }
+
+    .btn-quick:hover {
+      background: var(--btn-secondary-hover);
+      border-color: #cbd5e1;
+    }
+
+    /* Input Textarea */
+    .input-wrapper {
+      padding: 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    textarea#latex-input {
+      width: 100%;
+      height: 280px;
+      border: none;
+      outline: none;
+      resize: vertical;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      color: var(--text-main);
+      line-height: 1.6;
+      background: transparent;
+    }
+
+    textarea#latex-input::placeholder {
+      color: #94a3b8;
+    }
+
+    /* Preview Output Box */
+    .preview-wrapper {
+      padding: 24px 20px;
+      flex: 1;
+      min-height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-x: auto;
+      background: #ffffff;
+    }
+
+    .katex-render-target {
+      font-size: 1.45rem;
+      transition: font-size 0.2s ease;
+      max-width: 100%;
+      overflow-x: auto;
+      padding: 10px 0;
+    }
+
+    /* Placeholder saat kosong */
+    .preview-placeholder {
+      color: #94a3b8;
+      font-size: 0.92rem;
+      text-align: center;
+      user-select: none;
+    }
+
+    /* Alert Kesalahan Sintaks */
+    .error-box {
+      display: none;
+      padding: 12px 16px;
+      background: var(--danger-bg);
+      border-top: 1px solid #fecaca;
+      color: var(--danger-color);
+      font-size: 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      word-break: break-all;
+    }
+
+    /* Tombol Aksi */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: var(--btn-secondary-bg);
+      border-color: #cbd5e1;
+    }
+
+    .btn-primary {
+      background: var(--text-main);
+      color: #ffffff;
+      border-color: var(--text-main);
+    }
+
+    .btn-primary:hover {
+      background: #334155;
+      border-color: #334155;
+    }
+
+    /* Controls Bar Atas Preview */
+    .preview-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Switch Display Mode */
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Footer */
+    .app-footer {
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      padding: 18px 0;
+      margin-top: auto;
+    }
+
+    .app-footer a {
+      color: var(--text-main);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    /* Toast Notification Kustom */
+    .toast-popup {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--text-main);
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-md);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 9999;
+    }
+
+    .toast-popup.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Header Aplikasi -->
+    <header class="app-header">
+      <div class="brand-title">
+        <span>KaTeX Viewer</span>
+        <span class="brand-badge">Client-Side Engine</span>
+      </div>
+      <div class="header-links">
+        <button class="btn" id="btn-sample" title="Muat Rumus Contoh">Contoh Rumus</button>
+        <button class="btn" id="btn-clear" title="Kosongkan Input">Hapus</button>
+      </div>
+    </header>
+
+    <!-- Grid Editor & Visual Preview -->
+    <main class="grid-layout">
+      <!-- Kolom Kiri: Input LaTeX -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-title">LaTeX Editor</span>
+          <button class="btn" id="btn-copy-latex" title="Salin Kode LaTeX">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            Salin Kode
+          </button>
+        </div>
+
+        <!-- Quick Toolbar Simbol Populer -->
+        <div class="quick-toolbar" id="quick-toolbar">
+          <button class="btn-quick" data-insert="\frac{a}{b}">\frac</button>
+          <button class="btn-quick" data-insert="\sqrt{x}">\sqrt</button>
+          <button class="btn-quick" data-insert="^{2}">x²</button>
+          <button class="btn-quick" data-insert="_{i}">xᵢ</button>
+          <button class="btn-quick" data-insert="\int_{a}^{b} f(x) \,dx">\int</button>
+          <button class="btn-quick" data-insert="\sum_{i=1}^{n} x_i">\sum</button>
+          <button class="btn-quick" data-insert="\lim_{x \to \infty}">\lim</button>
+          <button class="btn-quick" data-insert="\alpha">\alpha</button>
+          <button class="btn-quick" data-insert="\pm">\pm</button>
+          <button class="btn-quick" data-insert="\begin{matrix} a & b \\ c & d \end{matrix}">[Matrix]</button>
+        </div>
+
+        <div class="input-wrapper">
+          <textarea id="latex-input" spellcheck="false" placeholder="Tuliskan formula LaTeX di sini...&#10;Contoh: \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}"></textarea>
+        </div>
+      </section>
+
+      <!-- Kolom Kanan: Live Render KaTeX -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-title">Preview Visual</span>
+          <div class="preview-controls">
+            <!-- Pilihan Display Mode (Block / Inline) -->
+            <label class="toggle-group" title="Ubah antara Display Math (Tengah/Besar) atau Inline Math">
+              <input type="checkbox" id="check-display-mode" checked>
+              <span>Display Mode</span>
+            </label>
+            <!-- Kontrol Ukuran Font Formula -->
+            <button class="btn" id="btn-zoom-out" title="Perkecil Rumus" style="padding: 4px 8px;">−</button>
+            <button class="btn" id="btn-zoom-in" title="Perbesar Rumus" style="padding: 4px 8px;">+</button>
+          </div>
+        </div>
+
+        <div class="preview-wrapper">
+          <div id="katex-output" class="katex-render-target">
+            <div class="preview-placeholder">Hasil konversi visual matematika akan muncul di sini secara langsung.</div>
+          </div>
+        </div>
+
+        <!-- Box Error Sintaks -->
+        <div id="error-container" class="error-box"></div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      Ditenagai oleh <a href="https://katex.org/" target="_blank" rel="noopener">KaTeX</a> &bull; Siap dideploy ke GitHub Pages tanpa backend server.
+    </footer>
+  </div>
+
+  <!-- Elemen Toast Notifikasi -->
+  <div id="toast" class="toast-popup">Teks berhasil disalin!</div>
+
+  <!-- KaTeX JavaScript CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+
+  <!-- Script Logika Frontend -->
+  <script>
+    // Referensi Elemen DOM
+    const latexInput = document.getElementById('latex-input');
+    const katexOutput = document.getElementById('katex-output');
+    const errorContainer = document.getElementById('error-container');
+    const checkDisplayMode = document.getElementById('check-display-mode');
+    const btnClear = document.getElementById('btn-clear');
+    const btnSample = document.getElementById('btn-sample');
+    const btnCopyLatex = document.getElementById('btn-copy-latex');
+    const btnZoomIn = document.getElementById('btn-zoom-in');
+    const btnZoomOut = document.getElementById('btn-zoom-out');
+    const quickToolbar = document.getElementById('quick-toolbar');
+    const toast = document.getElementById('toast');
+
+    // Variabel state ukuran font
+    let currentFontSizeRem = 1.45;
+
+    // Kumpulan contoh formula LaTeX
+    const sampleFormulas = [
+      "f(x) = \\int_{-\\infty}^\\infty \\hat f(\\xi)\\,e^{2 \\pi i \\xi x}\\,d\\xi",
+      "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}",
+      "\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}^{-1} = \\frac{1}{ad - bc} \\begin{pmatrix} d & -b \\\\ -c & a \\end{pmatrix}",
+      "e^{i\\pi} + 1 = 0",
+      "\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1"
+    ];
+    let sampleIndex = 0;
+
+    /**
+     * Menampilkan pesan notifikasi toast kustom tanpa alert browser
+     * @param {string} message
+     */
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(function () {
+        toast.classList.remove('show');
+      }, 2200);
+    }
+
+    /**
+     * Fungsi utama untuk merender teks LaTeX ke KaTeX
+     */
+    function renderLatex() {
+      const rawText = latexInput.value.trim();
+
+      // Jika input kosong, tampilkan kembali placeholder
+      if (!rawText) {
+        katexOutput.innerHTML = '<div class="preview-placeholder">Hasil konversi visual matematika akan muncul di sini secara langsung.</div>';
+        errorContainer.style.display = 'none';
+        errorContainer.textContent = '';
+        return;
+      }
+
+      try {
+        // Eksekusi KaTeX renderer secara client-side
+        katex.render(rawText, katexOutput, {
+          displayMode: checkDisplayMode.checked,
+          throwOnError: true
+        });
+
+        // Sembunyikan pesan error jika sukses
+        errorContainer.style.display = 'none';
+        errorContainer.textContent = '';
+      } catch (err) {
+        // Tampilkan pesan error jika ada kekeliruan sintaks LaTeX
+        errorContainer.style.display = 'block';
+        errorContainer.textContent = "Syntax Error: " + err.message;
+      }
+    }
+
+    /**
+     * Menyisipkan teks pada posisi kursor saat ini di textarea
+     * @param {string} textToInsert
+     */
+    function insertAtCursor(textToInsert) {
+      const startPos = latexInput.selectionStart;
+      const endPos = latexInput.selectionEnd;
+      const originalValue = latexInput.value;
+
+      latexInput.value = originalValue.substring(0, startPos) + textToInsert + originalValue.substring(endPos);
+      
+      // Kembalikan fokus dan sesuaikan posisi kursor
+      latexInput.focus();
+      latexInput.selectionStart = latexInput.selectionEnd = startPos + textToInsert.length;
+      
+      renderLatex();
+    }
+
+    /**
+     * Fungsi salin teks dengan kompatibilitas execCommand
+     * @param {string} text
+     */
+    function copyToClipboard(text) {
+      const tempTextArea = document.createElement('textarea');
+      tempTextArea.value = text;
+      tempTextArea.style.position = 'fixed';
+      tempTextArea.style.left = '-9999px';
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      
+      try {
+        document.execCommand('copy');
+        showToast('Berhasil disalin ke clipboard!');
+      } catch (e) {
+        showToast('Gagal menyalin');
+      } finally {
+        document.body.removeChild(tempTextArea);
+      }
+    }
+
+    // Event Listener Input & Toggle Mode
+    latexInput.addEventListener('input', renderLatex);
+    checkDisplayMode.addEventListener('change', renderLatex);
+
+    // Event Listener Toolbar Cepat
+    quickToolbar.addEventListener('click', function (e) {
+      const targetBtn = e.target.closest('.btn-quick');
+      if (targetBtn && targetBtn.dataset.insert) {
+        insertAtCursor(targetBtn.dataset.insert);
+      }
+    });
+
+    // Event Listener Bersihkan Input
+    btnClear.addEventListener('click', function () {
+      latexInput.value = '';
+      latexInput.focus();
+      renderLatex();
+      showToast('Editor dibersihkan');
+    });
+
+    // Event Listener Muat Contoh
+    btnSample.addEventListener('click', function () {
+      latexInput.value = sampleFormulas[sampleIndex];
+      sampleIndex = (sampleIndex + 1) % sampleFormulas.length;
+      renderLatex();
+      showToast('Formula contoh dimuat');
+    });
+
+    // Event Listener Salin Kode LaTeX
+    btnCopyLatex.addEventListener('click', function () {
+      const text = latexInput.value.trim();
+      if (!text) {
+        showToast('Tidak ada kode untuk disalin');
+        return;
+      }
+      copyToClipboard(text);
+    });
+
+    // Event Listener Kontrol Ukuran Formula (Zoom)
+    btnZoomIn.addEventListener('click', function () {
+      if (currentFontSizeRem < 2.5) {
+        currentFontSizeRem += 0.2;
+        katexOutput.style.fontSize = currentFontSizeRem + 'rem';
+      }
+    });
+
+    btnZoomOut.addEventListener('click', function () {
+      if (currentFontSizeRem > 0.9) {
+        currentFontSizeRem -= 0.2;
+        katexOutput.style.fontSize = currentFontSizeRem + 'rem';
+      }
+    });
+
+    // Inisialisasi awal saat halaman dimuat
+    window.addEventListener('DOMContentLoaded', function () {
+      latexInput.value = "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}";
+      renderLatex();
+    });
+  </script>
+</body>
+</html>
