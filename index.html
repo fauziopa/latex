@@ -226,6 +226,18 @@
       transition: font-size 0.2s ease;
     }
 
+    /* Penyelarasan Font Teks KaTeX dengan Tipografi Cambria */
+    .katex {
+      font-size: 1.08em; /* Menyeimbangkan proporsi tinggi huruf KaTeX dengan Cambria */
+    }
+
+    .katex .mathrm,
+    .katex .text,
+    .katex .textfont {
+      font-family: var(--font-cambria) !important;
+      font-weight: 400 !important; /* Mencegah teks rumus (\text{}) terlihat bold */
+    }
+
     /* Penanda Error Sintaks Inline */
     .katex-error-inline {
       color: var(--danger-color);
@@ -368,7 +380,7 @@
 
         <!-- Quick Toolbar Simbol Populer -->
         <div class="quick-toolbar" id="quick-toolbar">
-          <button class="btn-quick btn-quick-bracket" data-insert="[]" title="Sisipkan Kurung Delimiter">[ Rumus ]</button>
+          <button class="btn-quick btn-quick-bracket" data-insert="$$$$" title="Sisipkan Delimiter Rumus">$$ Rumus $$</button>
           <button class="btn-quick" data-insert="\frac{a}{b}">\frac</button>
           <button class="btn-quick" data-insert="\sqrt{x}">\sqrt</button>
           <button class="btn-quick" data-insert="^{2}">x²</button>
@@ -382,7 +394,7 @@
         </div>
 
         <div class="input-wrapper">
-          <textarea id="latex-input" spellcheck="false" placeholder="Tuliskan teks biasa di sini. Untuk rumus matematika, bungkus dengan tanda kurung siku [...].&#10;&#10;Contoh:&#10;Diketahui rumus [x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}], apa yang disebut dengan nilai di dalam akar?"></textarea>
+          <textarea id="latex-input" spellcheck="false" placeholder="Tuliskan teks biasa di sini. Untuk rumus matematika, bungkus dengan tanda $$.&#10;&#10;Contoh:&#10;Diketahui rumus $$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$, apa yang disebut dengan nilai di dalam akar?"></textarea>
         </div>
       </section>
 
@@ -443,12 +455,12 @@
     // Variabel state ukuran font preview
     let currentFontSizeRem = 1.22;
 
-    // Kumpulan contoh soal teks bercampur rumus LaTeX [...]
+    // Kumpulan contoh soal teks bercampur rumus LaTeX $$...$$
     const sampleTexts = [
-      "Diketahui rumus penyelesaian persamaan kuadrat adalah [x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}], apa yang disebut dengan nilai di dalam akar tersebut?\n\nA. Diskriminan\nB. Determinan\nC. Asimtot\nD. Gradien",
-      "Hitunglah nilai dari integral tentu berikut:\n[\\int_{0}^{\\pi} \\sin(x) \\,dx]\nJelaskan langkah-langkah penyelesaiannya secara berurutan!",
-      "Jika matriks [A = \\begin{matrix} a & b \\\\ c & d \\end{matrix}] memiliki determinan [ad - bc \\neq 0], maka buktikan bahwa invers matriks tersebut adalah:\n[A^{-1} = \\frac{1}{ad - bc} \\begin{matrix} d & -b \\\\ -c & a \\end{matrix}]",
-      "Persamaan identitas Euler yang menghubungkan lima konstanta matematika penting adalah [e^{i\\pi} + 1 = 0]."
+      "Diketahui rumus penyelesaian persamaan kuadrat adalah $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$, apa yang disebut dengan nilai di dalam akar tersebut?\n\nA. Diskriminan\nB. Determinan\nC. Asimtot\nD. Gradien",
+      "Hitunglah nilai dari integral tentu berikut:\n$$\\int_{0}^{\\pi} \\sin(x) \\,dx$$\nJelaskan langkah-langkah penyelesaiannya secara berurutan!",
+      "Jika matriks $$A = \\begin{matrix} a & b \\\\ c & d \\end{matrix}$$ memiliki determinan $$ad - bc \\neq 0$$, maka buktikan bahwa invers matriks tersebut adalah:\n$$A^{-1} = \\frac{1}{ad - bc} \\begin{matrix} d & -b \\\\ -c & a \\end{matrix}$$",
+      "Persamaan identitas Euler yang menghubungkan lima konstanta matematika penting adalah $$e^{i\\pi} + 1 = 0$$."
     ];
     let sampleIndex = 0;
 
@@ -479,7 +491,7 @@
     }
 
     /**
-     * Fungsi utama: Memisahkan teks biasa dengan rumus LaTeX di dalam kurung siku [...]
+     * Fungsi utama: Memisahkan teks biasa dengan rumus LaTeX di dalam delimiter $$...$$
      */
     function renderHybridContent() {
       const rawText = latexInput.value;
@@ -493,8 +505,8 @@
       }
 
       try {
-        // Pisahkan teks menggunakan regex penangkap kurung siku [...]
-        const segments = rawText.split(/(\[[^\]]*\])/g);
+        // Pisahkan teks menggunakan regex penangkap delimiter $$...$$
+        const segments = rawText.split(/(\$\$[\s\S]*?\$\$)/g);
         let compiledHtml = '';
         let hasError = false;
         let lastErrorMsg = '';
@@ -503,9 +515,9 @@
           const segment = segments[i];
           if (!segment) continue;
 
-          // Jika segmen adalah rumus matematika [ ... ]
-          if (segment.startsWith('[') && segment.endsWith(']')) {
-            const formula = segment.slice(1, -1).trim();
+          // Jika segmen adalah rumus matematika $$ ... $$
+          if (segment.startsWith('$$') && segment.endsWith('$$') && segment.length >= 4) {
+            const formula = segment.slice(2, -2).trim();
 
             if (formula === '') {
               continue;
@@ -520,11 +532,11 @@
               compiledHtml += renderedMath;
             } catch (err) {
               hasError = true;
-              lastErrorMsg = "Syntax Error pada [" + formula + "]: " + err.message;
-              compiledHtml += '<span class="katex-error-inline" title="' + escapeHtml(err.message) + '">[' + escapeHtml(formula) + ']</span>';
+              lastErrorMsg = "Syntax Error pada $$" + formula + "$$: " + err.message;
+              compiledHtml += '<span class="katex-error-inline" title="' + escapeHtml(err.message) + '">$$' + escapeHtml(formula) + '$$</span>';
             }
           } else {
-            // Teks biasa di luar tanda kurung: amankan karakter HTML & pertahankan spasi/baris
+            // Teks biasa di luar tanda $$: amankan karakter HTML & pertahankan spasi/baris
             compiledHtml += escapeHtml(segment);
           }
         }
@@ -556,23 +568,22 @@
 
       let textToInsert = snippet;
 
-      // Jika tombol [Rumus] diklik
-      if (snippet === '[]') {
+      // Jika tombol $$ Rumus $$ diklik
+      if (snippet === '$$$$') {
         if (selectedText.length > 0) {
-          textToInsert = '[' + selectedText + ']';
+          textToInsert = '$$' + selectedText + '$$';
         } else {
-          textToInsert = '[]';
+          textToInsert = '$$$$';
         }
       } else {
-        // Cek apakah kursor saat ini sudah berada di dalam kurung siku [...]
+        // Cek apakah kursor saat ini sudah berada di dalam delimiter $$ ... $$
         const textBeforeCursor = originalValue.substring(0, startPos);
-        const lastOpenBracket = textBeforeCursor.lastIndexOf('[');
-        const lastCloseBracket = textBeforeCursor.lastIndexOf(']');
-        const isInsideBracket = (lastOpenBracket > -1 && lastOpenBracket > lastCloseBracket);
+        const dollarMatches = textBeforeCursor.match(/\$\$/g);
+        const isInsideDollar = dollarMatches && (dollarMatches.length % 2 === 1);
 
-        // Jika kursor di luar kurung siku, otomatis bungkus dengan [...]
-        if (!isInsideBracket) {
-          textToInsert = '[' + snippet + ']';
+        // Jika kursor di luar delimiter $$, otomatis bungkus dengan $$...$$
+        if (!isInsideDollar) {
+          textToInsert = '$$' + snippet + '$$';
         }
       }
 
@@ -580,8 +591,8 @@
       latexInput.focus();
 
       // Atur posisi kursor setelah penyisipan
-      if (snippet === '[]' && selectedText.length === 0) {
-        latexInput.selectionStart = latexInput.selectionEnd = startPos + 1; // di antara kurung [|]
+      if (snippet === '$$$$' && selectedText.length === 0) {
+        latexInput.selectionStart = latexInput.selectionEnd = startPos + 2; // tepat di tengah: $$|$$
       } else {
         latexInput.selectionStart = latexInput.selectionEnd = startPos + textToInsert.length;
       }
@@ -666,7 +677,7 @@
 
     // Inisialisasi awal saat halaman dimuat
     window.addEventListener('DOMContentLoaded', function () {
-      latexInput.value = "Diketahui rumus penyelesaian persamaan kuadrat adalah [x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}], apa yang disebut dengan nilai di dalam akar tersebut?";
+      latexInput.value = "Diketahui rumus penyelesaian persamaan kuadrat adalah $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$, apa yang disebut dengan nilai di dalam akar tersebut?";
       renderHybridContent();
     });
   </script>
