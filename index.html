@@ -380,7 +380,7 @@
 
         <!-- Quick Toolbar Simbol Populer -->
         <div class="quick-toolbar" id="quick-toolbar">
-          <button class="btn-quick btn-quick-bracket" data-insert="$$$$" title="Sisipkan Delimiter Rumus">$$ Rumus $$</button>
+          <button class="btn-quick btn-quick-bracket" data-insert="$" title="Sisipkan Delimiter Rumus">$ Rumus $</button>
           <button class="btn-quick" data-insert="\frac{a}{b}">\frac</button>
           <button class="btn-quick" data-insert="\sqrt{x}">\sqrt</button>
           <button class="btn-quick" data-insert="^{2}">x²</button>
@@ -394,7 +394,7 @@
         </div>
 
         <div class="input-wrapper">
-          <textarea id="latex-input" spellcheck="false" placeholder="Tuliskan teks biasa di sini. Untuk rumus matematika, bungkus dengan tanda $$.&#10;&#10;Contoh:&#10;Diketahui rumus $$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$, apa yang disebut dengan nilai di dalam akar?"></textarea>
+          <textarea id="latex-input" spellcheck="false" placeholder="Tuliskan teks biasa di sini. Salin langsung dari Gemini atau bungkus rumus dengan tanda $.&#10;&#10;Contoh:&#10;Oksidasi $(\times 5)$: $5\text{Fe}^{2+} \rightarrow 5\text{Fe}^{3+} + 5e^-$&#10;Reduksi $(\times 1)$: $\text{MnO}_4^- + 8\text{H}^+ + 5e^- \rightarrow \text{Mn}^{2+} + 4\text{H}_2\text{O}$"></textarea>
         </div>
       </section>
 
@@ -455,12 +455,12 @@
     // Variabel state ukuran font preview
     let currentFontSizeRem = 1.22;
 
-    // Kumpulan contoh soal teks bercampur rumus LaTeX $$...$$
+    // Kumpulan contoh teks langsung kompatibel dengan format Gemini ($...$ dan $$...$$)
     const sampleTexts = [
-      "Diketahui rumus penyelesaian persamaan kuadrat adalah $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$, apa yang disebut dengan nilai di dalam akar tersebut?\n\nA. Diskriminan\nB. Determinan\nC. Asimtot\nD. Gradien",
+      "Oksidasi $(\\times 5)$: $5\\text{Fe}^{2+} \\rightarrow 5\\text{Fe}^{3+} + 5e^-$\nReduksi $(\\times 1)$: $\\text{MnO}_4^- + 8\\text{H}^+ + 5e^- \\rightarrow \\text{Mn}^{2+} + 4\\text{H}_2\\text{O}$\n\nReaksi Redoks Lengkap:\n$5\\text{Fe}^{2+} + \\text{MnO}_4^- + 8\\text{H}^+ \\rightarrow 5\\text{Fe}^{3+} + \\text{Mn}^{2+} + 4\\text{H}_2\\text{O}$",
+      "Diketahui rumus penyelesaian persamaan kuadrat adalah $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$, apa yang disebut dengan nilai di dalam akar tersebut?\n\nA. Diskriminan\nB. Determinan\nC. Asimtot\nD. Gradien",
       "Hitunglah nilai dari integral tentu berikut:\n$$\\int_{0}^{\\pi} \\sin(x) \\,dx$$\nJelaskan langkah-langkah penyelesaiannya secara berurutan!",
-      "Jika matriks $$A = \\begin{matrix} a & b \\\\ c & d \\end{matrix}$$ memiliki determinan $$ad - bc \\neq 0$$, maka buktikan bahwa invers matriks tersebut adalah:\n$$A^{-1} = \\frac{1}{ad - bc} \\begin{matrix} d & -b \\\\ -c & a \\end{matrix}$$",
-      "Persamaan identitas Euler yang menghubungkan lima konstanta matematika penting adalah $$e^{i\\pi} + 1 = 0$$."
+      "Jika matriks $A = \\begin{matrix} a & b \\\\ c & d \\end{matrix}$ memiliki determinan $ad - bc \\neq 0$, maka buktikan bahwa invers matriks tersebut adalah:\n$$A^{-1} = \\frac{1}{ad - bc} \\begin{matrix} d & -b \\\\ -c & a \\end{matrix}$$"
     ];
     let sampleIndex = 0;
 
@@ -491,7 +491,8 @@
     }
 
     /**
-     * Fungsi utama: Memisahkan teks biasa dengan rumus LaTeX di dalam delimiter $$...$$
+     * Fungsi utama: Memisahkan teks biasa dengan rumus LaTeX
+     * Mendukung $$...$$ (Display Math) dan $...$ (Inline Math khas Gemini) secara simultan.
      */
     function renderHybridContent() {
       const rawText = latexInput.value;
@@ -505,8 +506,8 @@
       }
 
       try {
-        // Pisahkan teks menggunakan regex penangkap delimiter $$...$$
-        const segments = rawText.split(/(\$\$[\s\S]*?\$\$)/g);
+        // Regex cerdas: Prioritas 1 ($$...$$ display), Prioritas 2 ($...$ inline tanpa newline)
+        const segments = rawText.split(/(\$\$[\s\S]*?\$\$|\$[^\$]+?\$)/g);
         let compiledHtml = '';
         let hasError = false;
         let lastErrorMsg = '';
@@ -515,28 +516,35 @@
           const segment = segments[i];
           if (!segment) continue;
 
-          // Jika segmen adalah rumus matematika $$ ... $$
-          if (segment.startsWith('$$') && segment.endsWith('$$') && segment.length >= 4) {
-            const formula = segment.slice(2, -2).trim();
+          const isDouble = segment.startsWith('$$') && segment.endsWith('$$') && segment.length >= 4;
+          const isSingle = !isDouble && segment.startsWith('$') && segment.endsWith('$') && segment.length >= 2;
+
+          // Jika segmen adalah rumus matematika ($$...$$ atau $...$)
+          if (isDouble || isSingle) {
+            const formula = isDouble ? segment.slice(2, -2).trim() : segment.slice(1, -1).trim();
 
             if (formula === '') {
               continue;
             }
 
+            // Display Mode: $$ selalu display mode, sedangkan $ adalah inline (kecuali jika toggle display mode dicentang)
+            const useDisplayMode = isDouble ? true : checkDisplayMode.checked;
+
             try {
               // Render formula menggunakan KaTeX engine
               const renderedMath = katex.renderToString(formula, {
-                displayMode: checkDisplayMode.checked,
+                displayMode: useDisplayMode,
                 throwOnError: true
               });
               compiledHtml += renderedMath;
             } catch (err) {
               hasError = true;
-              lastErrorMsg = "Syntax Error pada $$" + formula + "$$: " + err.message;
-              compiledHtml += '<span class="katex-error-inline" title="' + escapeHtml(err.message) + '">$$' + escapeHtml(formula) + '$$</span>';
+              const delim = isDouble ? '$$' : '$';
+              lastErrorMsg = "Syntax Error pada " + delim + formula + delim + ": " + err.message;
+              compiledHtml += '<span class="katex-error-inline" title="' + escapeHtml(err.message) + '">' + delim + escapeHtml(formula) + delim + '</span>';
             }
           } else {
-            // Teks biasa di luar tanda $$: amankan karakter HTML & pertahankan spasi/baris
+            // Teks biasa di luar tanda $: amankan karakter HTML & pertahankan spasi/baris
             compiledHtml += escapeHtml(segment);
           }
         }
@@ -568,22 +576,22 @@
 
       let textToInsert = snippet;
 
-      // Jika tombol $$ Rumus $$ diklik
-      if (snippet === '$$$$') {
+      // Jika tombol $ Rumus $ diklik
+      if (snippet === '$') {
         if (selectedText.length > 0) {
-          textToInsert = '$$' + selectedText + '$$';
+          textToInsert = '$' + selectedText + '$';
         } else {
-          textToInsert = '$$$$';
+          textToInsert = '$$'; // Sisipkan sepasang dolar: $|$
         }
       } else {
-        // Cek apakah kursor saat ini sudah berada di dalam delimiter $$ ... $$
+        // Cek apakah kursor saat ini sudah berada di dalam delimiter $ atau $$
         const textBeforeCursor = originalValue.substring(0, startPos);
-        const dollarMatches = textBeforeCursor.match(/\$\$/g);
+        const dollarMatches = textBeforeCursor.match(/\$/g);
         const isInsideDollar = dollarMatches && (dollarMatches.length % 2 === 1);
 
-        // Jika kursor di luar delimiter $$, otomatis bungkus dengan $$...$$
+        // Jika kursor di luar delimiter $, otomatis bungkus dengan $...$
         if (!isInsideDollar) {
-          textToInsert = '$$' + snippet + '$$';
+          textToInsert = '$' + snippet + '$';
         }
       }
 
@@ -591,8 +599,8 @@
       latexInput.focus();
 
       // Atur posisi kursor setelah penyisipan
-      if (snippet === '$$$$' && selectedText.length === 0) {
-        latexInput.selectionStart = latexInput.selectionEnd = startPos + 2; // tepat di tengah: $$|$$
+      if (snippet === '$' && selectedText.length === 0) {
+        latexInput.selectionStart = latexInput.selectionEnd = startPos + 1; // tepat di tengah: $|$
       } else {
         latexInput.selectionStart = latexInput.selectionEnd = startPos + textToInsert.length;
       }
@@ -675,9 +683,9 @@
       }
     });
 
-    // Inisialisasi awal saat halaman dimuat
+    // Inisialisasi awal saat halaman dimuat dengan format reaksi redoks Gemini
     window.addEventListener('DOMContentLoaded', function () {
-      latexInput.value = "Diketahui rumus penyelesaian persamaan kuadrat adalah $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$, apa yang disebut dengan nilai di dalam akar tersebut?";
+      latexInput.value = "Oksidasi $(\\times 5)$: $5\\text{Fe}^{2+} \\rightarrow 5\\text{Fe}^{3+} + 5e^-$\nReduksi $(\\times 1)$: $\\text{MnO}_4^- + 8\\text{H}^+ + 5e^- \\rightarrow \\text{Mn}^{2+} + 4\\text{H}_2\\text{O}$";
       renderHybridContent();
     });
   </script>
